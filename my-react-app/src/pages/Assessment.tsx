@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { startSession, getNextQuestion, submitAnswer, endSession } from '../services/api';
 import type { Question, AssessmentResult } from '../types/types';
+import Mascot from '../components/Mascot';
 import '../styles/assessment.css';
 
 type AssessmentPhase = 'welcome' | 'question' | 'loading' | 'complete' | 'error';
@@ -152,45 +153,61 @@ const Assessment: React.FC = () => {
         setPhase('welcome');
     };
 
-    // Render welcome screen
+    // Render welcome screen with Mascot and simplified UI
     const renderWelcome = () => (
-        <div className="assessment-welcome">
-            <div className="welcome-card">
-                <div className="welcome-icon">🧠</div>
-                <h1>Learning Assessment</h1>
-                <p>This quick screening will help identify learning patterns and provide personalized recommendations.</p>
+        <div className={`assessment-welcome smooth-fade-in`}>
+            <div className="welcome-card glass-panel">
+                <div className="mascot-wrapper">
+                    <Mascot expression="happy" size="large" />
+                </div>
 
-                <div className="age-selection">
-                    <label>Select Age Group</label>
-                    <div className="age-options">
+                <h1 className="welcome-title">
+                    <span className="gradient-text">Ready to Learn?</span>
+                </h1>
+                <p className="welcome-desc">
+                    Let's discover your unique superpowers!
+                    Select your age to begin your personal adventure.
+                </p>
+
+                <div className="age-selection-container">
+                    <div className="age-options-grid">
                         {ageGroups.map(group => (
                             <button
                                 key={group.value}
-                                className={`age-btn ${ageGroup === group.value ? 'active' : ''}`}
+                                className={`age-card-btn ${ageGroup === group.value ? 'selected' : ''}`}
                                 onClick={() => setAgeGroup(group.value)}
                             >
-                                {group.label}
+                                <div className="age-card-content">
+                                    <span className="age-card-label">{group.value}</span>
+                                    <span className="age-card-sub">Years</span>
+                                </div>
+                                {ageGroup === group.value && <div className="selected-check">✓</div>}
                             </button>
                         ))}
                     </div>
                 </div>
 
-                <button className="start-btn" onClick={handleStartSession}>
-                    <span>🚀</span> Start Assessment
+                <button className="hero-start-btn" onClick={handleStartSession}>
+                    <span className="btn-text">Start Assessment</span>
+                    <span className="btn-icon">➜</span>
                 </button>
 
-                <div className="welcome-info">
-                    <div className="info-item">
-                        <span>⏱️</span> Takes 5-10 minutes
+                <div className="features-row">
+                    <div className="feature-pill">
+                        <span className="feature-icon">⚡</span> 5 Mins
                     </div>
-                    <div className="info-item">
-                        <span>📊</span> Adaptive questions
+                    <div className="feature-pill">
+                        <span className="feature-icon">🎮</span> Fun
                     </div>
-                    <div className="info-item">
-                        <span>🔒</span> Private & secure
+                    <div className="feature-pill">
+                        <span className="feature-icon">🛡️</span> Private
                     </div>
                 </div>
             </div>
+
+            {/* Ambient Background Elements */}
+            <div className="ambient-orb orb-1"></div>
+            <div className="ambient-orb orb-2"></div>
         </div>
     );
 
