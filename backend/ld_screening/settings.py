@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'corsheaders',
     # Local
     'assessment',
+    'reading_analysis',
 ]
 
 MIDDLEWARE = [
