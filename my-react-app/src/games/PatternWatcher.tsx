@@ -13,6 +13,7 @@ type Props = {
     onAnswer: (result: PatternResult) => void;
 };
 
+import "../styles/PatternWatcher.css";
 export default function PatternWatcher({
     expectedPattern,
     currentItem,

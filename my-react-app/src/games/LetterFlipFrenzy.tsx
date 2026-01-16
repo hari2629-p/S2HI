@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import "../styles/LetterFlipFrenzy.css";
 
 type ReadingResult = {
     correct: boolean;

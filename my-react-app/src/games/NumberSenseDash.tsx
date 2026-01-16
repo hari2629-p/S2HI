@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import "../styles/NumberSenseDash.css";
 
 type MathResult = {
     correct: boolean;
@@ -31,15 +32,15 @@ export default function NumberSenseDash({ left, right, onAnswer }: Props) {
     };
 
     return (
-        <div className="flex flex-col items-center gap-6">
-            <h2 className="text-xl font-semibold">Which number is larger?</h2>
+        <div className="number-sense-container">
+            <h2 className="number-sense-heading">Which number is larger?</h2>
 
-            <div className="flex gap-8">
+            <div className="number-sense-options">
                 {[left, right].map((num) => (
                     <button
                         key={num}
                         onClick={() => handleClick(num)}
-                        className="text-3xl p-8 border rounded-xl hover:bg-gray-100"
+                        className="number-sense-button"
                     >
                         {num}
                     </button>
