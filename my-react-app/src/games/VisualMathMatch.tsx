@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import "../styles/VisualMathMatch.css";
 
 type VisualMathResult = {
     correct: boolean;
@@ -37,21 +38,21 @@ export default function VisualMathMatch({
     };
 
     return (
-        <div className="flex flex-col gap-6 items-center">
-            <h2 className="text-xl font-semibold">
+        <div className="visual-math-container">
+            <h2 className="visual-math-heading">
                 Match the equation to the blocks
             </h2>
 
-            <div className="text-2xl">{equation}</div>
+            <div className="visual-math-equation">{equation}</div>
 
-            <div className="flex gap-6">
+            <div className="visual-math-options">
                 {options.map((value) => (
                     <button
                         key={value}
                         onClick={() => handleClick(value)}
-                        className="p-4 border rounded-lg hover:bg-gray-100"
+                        className="visual-math-option"
                     >
-                        {"●".repeat(value)}
+                        <div className="visual-math-block">{"●".repeat(value)}</div>
                     </button>
                 ))}
             </div>

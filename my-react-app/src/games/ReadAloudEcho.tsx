@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import "../styles/ReadAloudEcho.css";
 
 type ReadingEchoResult = {
     accuracy: number;
@@ -45,12 +46,12 @@ export default function ReadAloudEcho({ sentence, onAnswer }: Props) {
     };
 
     return (
-        <div className="flex flex-col gap-4">
-            <h2 className="text-lg font-semibold">Read & Type the Sentence</h2>
-            <p className="text-xl bg-gray-100 p-4 rounded">{sentence}</p>
+        <div className="read-echo-container">
+            <h2 className="read-echo-heading">Read & Type the Sentence</h2>
+            <p className="read-echo-sentence">{sentence}</p>
 
             <textarea
-                className="border rounded p-3"
+                className="read-echo-input"
                 rows={3}
                 placeholder="Type what you read..."
                 value={input}
@@ -59,7 +60,7 @@ export default function ReadAloudEcho({ sentence, onAnswer }: Props) {
 
             <button
                 onClick={handleSubmit}
-                className="bg-blue-600 text-white p-3 rounded hover:bg-blue-700"
+                className="read-echo-submit"
             >
                 Submit
             </button>
