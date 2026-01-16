@@ -4,7 +4,8 @@ import type {
   Question, 
   AnswerSubmission, 
   AnswerResponse, 
-  AssessmentResult 
+  AssessmentResult,
+  DashboardDataResponse 
 } from '../types/types';
 
 const API_BASE_URL = 'http://localhost:8000';
@@ -96,3 +97,17 @@ export async function endSession(
     session_id: sessionId
   });
 }
+
+/**
+ * Get comprehensive dashboard data for a completed session
+ */
+export async function getDashboardData(
+  userId: number,
+  sessionId: string
+): Promise<DashboardDataResponse> {
+  return apiRequest<DashboardDataResponse>('/get-dashboard-data/', {
+    user_id: userId,
+    session_id: sessionId
+  });
+}
+

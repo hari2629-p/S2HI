@@ -16,6 +16,8 @@ from .serializers import (
     SubmitAnswerResponseSerializer,
     EndSessionRequestSerializer,
     EndSessionResponseSerializer,
+    GetDashboardDataRequestSerializer,
+    DashboardDataResponseSerializer,
 )
 from .adaptive_logic import get_adaptive_question
 from .ml_utils import get_prediction
@@ -110,29 +112,123 @@ class GetNextQuestionView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # Get next adaptive question
-        question = get_adaptive_question(
-            session_id=session_id,
-            last_question_id=last_question_id,
-            correct=correct,
-            response_time_ms=response_time_ms
-        )
-        
-        if not question:
+        # Get next adaptive question using ML model
+        try:
+            import joblib
+            import os
+            import numpy as np
+            from django.conf import settings
+            
+            # Load question generator model (trained by team)
+            generator_path = os.path.join(settings.BASE_DIR, 'question_generator.pkl')
+            
+            if os.path.exists(generator_path):
+                generator = joblib.load(generator_path)
+                
+                # Get previous responses to determine current state
+                responses = UserResponse.objects.filter(session=session).order_by('-answered_at')
+                
+                if responses.exists():
+                    last_response = responses.first()
+                    # Map domain names to IDs
+                    domain_map = {'reading': 0, 'writing': 0, 'math': 1, 'attention': 2, 'focus': 2}
+                    diff_map = {'easy': 0, 'medium': 1, 'hard': 2}
+                    
+                    cur_domain = domain_map.get(last_response.domain, 0)
+                    cur_diff = diff_map.get(last_response.difficulty, 1)
+                    is_correct = 1 if correct else 0
+                    time_ms = response_time_ms or 2000
+                else:
+                    # First question - start with reading, easy
+                    cur_domain = 0
+                    cur_diff = 0
+                    is_correct = 1
+                    time_ms = 2000
+                
+                # Prepare features for model: [cur_domain, cur_diff, correct, time_ms]
+                features = np.array([[cur_domain, cur_diff, is_correct, time_ms]])
+                
+                # Predict next domain and difficulty
+                prediction = generator.predict(features)
+                
+                # Parse prediction (returns [[domain, difficulty]])
+                if len(prediction.shape) == 2 and prediction.shape[1] == 2:
+                    next_domain_idx = int(prediction[0][0])
+                    next_diff_idx = int(prediction[0][1])
+                else:
+                    # Fallback
+                    next_domain_idx = 0
+                    next_diff_idx = 1
+                
+                # Map indices to names
+                domain_names = {0: 'reading', 1: 'math', 2: 'attention'}
+                diff_names = {0: 'easy', 1: 'medium', 2: 'hard'}
+                
+                next_domain = domain_names.get(next_domain_idx, 'reading')
+                next_difficulty = diff_names.get(next_diff_idx, 'medium')
+                
+                # Check if session should end (15-20 questions)
+                response_count = UserResponse.objects.filter(session=session).count()
+                
+                if response_count >= 15:
+                    # End session automatically
+                    return Response(
+                        {
+                            'message': 'Assessment complete! Generating your results...',
+                            'end_session': True,
+                            'total_questions': response_count
+                        },
+                        status=status.HTTP_200_OK
+                    )
+                
+                # 🎯 GENERATE QUESTION DYNAMICALLY using the model
+                question_data = generator.generate_question(next_domain, next_difficulty)
+                
+                # Create a unique question ID
+                question_id = f"Q_{session_id}_{response_count + 1}"
+                
+                response_data = {
+                    'question_id': question_id,
+                    'domain': question_data['domain'],
+                    'difficulty': question_data['difficulty'],
+                    'question_text': question_data['question_text'],
+                    'options': question_data['options'],
+                    'correct_option': question_data['correct_option']  # Include for answer validation
+                }
+                
+                return Response(response_data, status=status.HTTP_200_OK)
+                
+            else:
+                # Fallback to database if generator not found
+                question = get_adaptive_question(
+                    session_id=session_id,
+                    last_question_id=last_question_id,
+                    correct=correct,
+                    response_time_ms=response_time_ms
+                )
+                
+                if not question:
+                    return Response(
+                        {'message': 'No more questions available', 'end_session': True},
+                        status=status.HTTP_200_OK
+                    )
+                
+                response_data = {
+                    'question_id': question.question_id,
+                    'domain': question.domain,
+                    'difficulty': question.difficulty,
+                    'question_text': question.question_text,
+                    'options': question.options
+                }
+                
+                return Response(response_data, status=status.HTTP_200_OK)
+                
+        except Exception as e:
+            import traceback
             return Response(
-                {'message': 'No more questions available', 'end_session': True},
-                status=status.HTTP_200_OK
+                {'error': f'Question generation failed: {str(e)}', 'traceback': traceback.format_exc()},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-        
-        response_data = {
-            'question_id': question.question_id,
-            'domain': question.domain,
-            'difficulty': question.difficulty,
-            'question_text': question.question_text,
-            'options': question.options
-        }
-        
-        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class SubmitAnswerView(APIView):
@@ -328,3 +424,239 @@ class EndSessionView(APIView):
             'confidence_level': prediction_result['confidence_level'],
             'key_insights': prediction_result['key_insights']
         }, status=status.HTTP_200_OK)
+
+
+class GetDashboardDataView(APIView):
+    """
+    POST /get-dashboard-data/
+    
+    Get comprehensive dashboard data for a completed session.
+    
+    Request:
+        {"user_id": 101, "session_id": "S_101_01"}
+    
+    Response:
+        {
+            "student_id": "STU-101",
+            "age_group": "9-11",
+            "final_risk": "Possible Dyslexia-related Risk",
+            "confidence": "Moderate",
+            "risk_level": 60,
+            "assessment_date": "January 16, 2026",
+            "summary": "Assessment completed. Review domain analysis for insights.",
+            "key_insights": ["Frequent letter reversals observed"],
+            "patterns": {
+                "reading": {
+                    "accuracy": 65.5,
+                    "avg_time": 1200.5,
+                    "common_mistake": "Letter Reversal (b/d)",
+                    "recommendation": "Use phonics-based games..."
+                },
+                "math": {...},
+                "focus": {...}
+            }
+        }
+    """
+    
+    def post(self, request):
+        serializer = GetDashboardDataRequestSerializer(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        data = serializer.validated_data
+        user_id = data['user_id']
+        session_id = data['session_id']
+        
+        # Validate user and session
+        try:
+            user = User.objects.get(user_id=user_id)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'User not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        try:
+            session = Session.objects.get(session_id=session_id)
+        except Session.DoesNotExist:
+            return Response(
+                {'error': 'Session not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get prediction if session is completed
+        prediction = None
+        if session.completed:
+            try:
+                prediction = FinalPrediction.objects.get(session=session)
+            except FinalPrediction.DoesNotExist:
+                pass
+        
+        # Fetch all responses for this session
+        responses = UserResponse.objects.filter(session=session).select_related('question')
+        
+        if not responses.exists():
+            return Response(
+                {'error': 'No responses found for this session'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Calculate domain-specific metrics
+        domain_patterns = self._calculate_domain_patterns(responses)
+        
+        # Map risk type to display name
+        risk_labels = {
+            'low-risk': 'Low Risk - No Significant Concerns',
+            'dyslexia-risk': 'Possible Dyslexia-related Risk',
+            'dyscalculia-risk': 'Possible Dyscalculia-related Risk',
+            'attention-risk': 'Possible Attention-related Risk'
+        }
+        
+        # Calculate risk percentage from confidence level
+        risk_levels = {
+            'low': 30,
+            'moderate': 60,
+            'high': 85
+        }
+        
+        # Prepare response data
+        if prediction:
+            final_risk = risk_labels.get(prediction.final_label, prediction.final_label)
+            confidence = prediction.confidence_level.capitalize()
+            risk_level = risk_levels.get(prediction.confidence_level, 50)
+            key_insights = prediction.key_insights
+        else:
+            final_risk = "Assessment In Progress"
+            confidence = "N/A"
+            risk_level = 0
+            key_insights = []
+        
+        # Format assessment date
+        from datetime import datetime
+        assessment_date = session.started_at.strftime('%B %d, %Y')
+        
+        response_data = {
+            'student_id': f'STU-{user.user_id}',
+            'age_group': user.age_group,
+            'final_risk': final_risk,
+            'confidence': confidence,
+            'risk_level': risk_level,
+            'assessment_date': assessment_date,
+            'summary': ' '.join(key_insights) if key_insights else 'Assessment completed. Review the domain analysis below for detailed insights.',
+            'key_insights': key_insights,
+            'patterns': domain_patterns
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+    def _calculate_domain_patterns(self, responses):
+        """Calculate performance patterns for each domain."""
+        from collections import defaultdict
+        
+        # Group responses by domain
+        domain_data = defaultdict(list)
+        for response in responses:
+            # Map 'writing' and 'attention' to frontend domains
+            domain = response.domain
+            if domain == 'writing':
+                domain = 'reading'  # Combine writing with reading
+            elif domain == 'attention':
+                domain = 'focus'  # Map attention to focus
+            
+            domain_data[domain].append(response)
+        
+        patterns = {}
+        
+        # Calculate metrics for each domain
+        for domain in ['reading', 'math', 'focus']:
+            domain_responses = domain_data.get(domain, [])
+            
+            if not domain_responses:
+                # Default values if no data
+                patterns[domain] = {
+                    'accuracy': 0,
+                    'avg_time': 0,
+                    'common_mistake': 'No data',
+                    'recommendation': 'Complete more questions in this domain for analysis.'
+                }
+                continue
+            
+            # Calculate accuracy
+            correct_count = sum(1 for r in domain_responses if r.correct)
+            accuracy = (correct_count / len(domain_responses)) * 100 if domain_responses else 0
+            
+            # Calculate average response time
+            avg_time = sum(r.response_time_ms for r in domain_responses) / len(domain_responses)
+            
+            # Find most common mistake
+            mistakes = []
+            for response in domain_responses:
+                if not response.correct:
+                    mistake_patterns = MistakePattern.objects.filter(response=response)
+                    for mistake in mistake_patterns:
+                        mistakes.append(mistake.mistake_type)
+            
+            common_mistake = self._get_common_mistake(mistakes, domain)
+            recommendation = self._get_recommendation(domain, accuracy, avg_time, common_mistake)
+            
+            patterns[domain] = {
+                'accuracy': round(accuracy, 1),
+                'avg_time': round(avg_time, 1),
+                'common_mistake': common_mistake,
+                'recommendation': recommendation
+            }
+        
+        return patterns
+    
+    def _get_common_mistake(self, mistakes, domain):
+        """Determine the most common mistake type."""
+        if not mistakes:
+            return "None"
+        
+        from collections import Counter
+        mistake_counts = Counter(mistakes)
+        most_common = mistake_counts.most_common(1)[0][0]
+        
+        # Map mistake types to readable names
+        mistake_names = {
+            'letter_reversal': 'Letter Reversal (b/d, p/q)',
+            'number_reversal': 'Number Reversal',
+            'spelling_error': 'Spelling Errors',
+            'calculation_error': 'Calculation Errors',
+            'sequence_error': 'Sequence Errors',
+            'omission': 'Omissions',
+            'substitution': 'Substitutions'
+        }
+        
+        return mistake_names.get(most_common, most_common.replace('_', ' ').title())
+    
+    def _get_recommendation(self, domain, accuracy, avg_time, common_mistake):
+        """Generate personalized recommendation based on performance."""
+        
+        if domain == 'reading':
+            if accuracy < 60:
+                return "Use highlighted letters, phonics-based games, and short reading chunks. Consider multisensory learning approaches."
+            elif accuracy < 75:
+                return "Continue with phonics practice. Gradually increase reading complexity with guided support."
+            else:
+                return "Reading skills are developing well. Encourage independent reading with age-appropriate materials."
+        
+        elif domain == 'math':
+            if accuracy < 60:
+                return "Use visual aids, manipulatives, and step-by-step problem solving. Break down complex problems into smaller steps."
+            elif accuracy < 75:
+                return "Practice with concrete examples and visual representations. Reinforce foundational concepts."
+            else:
+                return "Math skills are age-appropriate. Introduce more challenging problems to maintain engagement."
+        
+        elif domain == 'focus':
+            if accuracy < 60 or avg_time < 800:
+                return "Short tasks with clear visual cues and structured breaks are helpful. Minimize distractions during work time."
+            elif accuracy < 75:
+                return "Use timers and checklists to improve task completion. Provide positive reinforcement for sustained attention."
+            else:
+                return "Attention span is within normal range. Continue with current strategies and gradually increase task duration."
+        
+        return "Continue current learning approach and monitor progress."
+

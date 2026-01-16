@@ -74,7 +74,6 @@ export interface AssessmentState {
   error: string | null;
 }
 
-// Mistake Types
 export type MistakeType = 
   | 'letter_reversal'
   | 'number_reversal'
@@ -83,3 +82,33 @@ export type MistakeType =
   | 'sequence_error'
   | 'omission'
   | 'substitution';
+
+// Dashboard API Types
+export interface DashboardDataRequest {
+  user_id: number;
+  session_id: string;
+}
+
+export interface DomainPerformance {
+  accuracy: number;
+  avg_time: number;
+  common_mistake: string;
+  recommendation: string;
+}
+
+export interface DashboardDataResponse {
+  student_id: string;
+  age_group: string;
+  final_risk: string;
+  confidence: string;
+  risk_level: number;
+  assessment_date: string;
+  summary: string;
+  key_insights: string[];
+  patterns: {
+    reading: DomainPerformance;
+    math: DomainPerformance;
+    focus: DomainPerformance;
+  };
+}
+

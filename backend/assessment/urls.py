@@ -9,4 +9,5 @@ urlpatterns = [
     path('get-next-question/', views.GetNextQuestionView.as_view(), name='get-next-question'),
     path('submit-answer/', views.SubmitAnswerView.as_view(), name='submit-answer'),
     path('end-session/', views.EndSessionView.as_view(), name='end-session'),
+    path('get-dashboard-data/', views.GetDashboardDataView.as_view(), name='get-dashboard-data'),
 ]

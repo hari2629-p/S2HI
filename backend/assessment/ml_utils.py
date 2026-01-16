@@ -4,6 +4,7 @@ Handles model loading, feature extraction, and prediction.
 """
 import os
 import numpy as np
+import pandas as pd
 from typing import Dict, List, Any
 from django.conf import settings
 
@@ -15,7 +16,7 @@ except ImportError:
     HAS_JOBLIB = False
 
 # Paths to the ML models
-QUESTION_MODEL_PATH = os.path.join(settings.BASE_DIR, 'question_model.pkl')
+QUESTION_MODEL_PATH = os.path.join(settings.BASE_DIR, 'question_generator.pkl')
 PREDICTION_MODEL_PATH = os.path.join(settings.BASE_DIR, 'prediction_model.pkl')
 
 # Global model instances
@@ -27,13 +28,8 @@ def load_question_model():
     """Load the question generation ML model from disk."""
     global _question_model
     if _question_model is None:
-        if HAS_JOBLIB and os.path.exists(QUESTION_MODEL_PATH):
-            _question_model = joblib.load(QUESTION_MODEL_PATH)
-            print(f"✅ Loaded question generation model from {QUESTION_MODEL_PATH}")
-        else:
-            # Use placeholder model if joblib not available or file doesn't exist
-            _question_model = PlaceholderQuestionModel()
-            print("⚠️  Using rule-based question selection (question_model.pkl not found)")
+        _question_model = joblib.load(QUESTION_MODEL_PATH)
+        print(f"✅ Loaded question generation model from {QUESTION_MODEL_PATH}")
     return _question_model
 
 
@@ -341,7 +337,7 @@ def get_next_question_ml(
 
 def get_prediction(responses: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
-    Get risk prediction from ML model.
+    Get risk prediction from ML model (using team's risk_classifier.pkl).
     
     Args:
         responses: List of user response dictionaries
@@ -350,52 +346,123 @@ def get_prediction(responses: List[Dict[str, Any]]) -> Dict[str, Any]:
         Dictionary with risk, confidence_level, and key_insights
     """
     model = load_prediction_model()
-    features = extract_features(responses)
+    
+    if not responses:
+        return {
+            'risk': 'low-risk',
+            'confidence_level': 'low',
+            'key_insights': ['Insufficient data for assessment'],
+            'scores': {'dyslexia': 0, 'dyscalculia': 0, 'attention': 0}
+        }
+    
+    # Calculate features for risk_classifier model
+    # Expected features: reading_acc, math_acc, focus_acc, avg_time_ms, rev_rate, pv_rate, impulse_rate
+    
+    total = len(responses)
+    
+    # Domain-specific accuracy
+    reading_responses = [r for r in responses if r.get('domain') in ['reading', 'writing']]
+    math_responses = [r for r in responses if r.get('domain') == 'math']
+    focus_responses = [r for r in responses if r.get('domain') in ['attention', 'focus']]
+    
+    reading_acc = sum(1 for r in reading_responses if r.get('correct')) / len(reading_responses) if reading_responses else 0.5
+    math_acc = sum(1 for r in math_responses if r.get('correct')) / len(math_responses) if math_responses else 0.5
+    focus_acc = sum(1 for r in focus_responses if r.get('correct')) / len(focus_responses) if focus_responses else 0.5
+    
+    # Average time
+    avg_time_ms = sum(r.get('response_time_ms', 2000) for r in responses) / total
+    
+    # Reversal rate (letter_reversal mistakes)
+    reversal_count = sum(1 for r in responses if r.get('mistake_type') == 'letter_reversal')
+    rev_rate = reversal_count / total
+    
+    # Position/visual rate (other visual mistakes)
+    pv_count = sum(1 for r in responses if r.get('mistake_type') in ['number_reversal', 'substitution'])
+    pv_rate = pv_count / total
+    
+    # Impulse rate (fast incorrect answers)
+    impulse_count = sum(1 for r in responses if not r.get('correct') and r.get('response_time_ms', 2000) < 1000)
+    impulse_rate = impulse_count / total
+    
+    # Create DataFrame with exact column names
+    features = pd.DataFrame([{
+        "reading_acc": reading_acc,
+        "math_acc": math_acc,
+        "focus_acc": focus_acc,
+        "avg_time_ms": avg_time_ms,
+        "rev_rate": rev_rate,
+        "pv_rate": pv_rate,
+        "impulse_rate": impulse_rate
+    }])
     
     # Get prediction
-    prediction = model.predict(features)
+    prediction = model.predict(features)[0]  # Returns label like "Dyslexia Risk"
     
-    dyslexia_risk = float(prediction[0][0])
-    dyscalculia_risk = float(prediction[0][1])
-    attention_risk = float(prediction[0][2])
+    # Get confidence
+    if hasattr(model, 'predict_proba'):
+        probs = model.predict_proba(features)[0]
+        confidence_score = max(probs) * 100
+        
+        if confidence_score > 80:
+            confidence_level = 'high'
+        elif confidence_score > 60:
+            confidence_level = 'moderate'
+        else:
+            confidence_level = 'low'
+    else:
+        confidence_level = 'moderate'
+        confidence_score = 70
     
-    # Determine primary risk
-    risks = {
-        'dyslexia-risk': dyslexia_risk,
-        'dyscalculia-risk': dyscalculia_risk,
-        'attention-risk': attention_risk
+    # Map prediction to our format
+    label_map = {
+        'Low Risk': 'low-risk',
+        'Dyslexia Risk': 'dyslexia-risk',
+        'Dyscalculia Risk': 'dyscalculia-risk',
+        'Attention Risk': 'attention-risk'
     }
     
-    max_risk_label = max(risks, key=risks.get)
-    max_risk_score = risks[max_risk_label]
-    
-    # Determine confidence level
-    if max_risk_score > 0.7:
-        confidence_level = 'high'
-    elif max_risk_score > 0.4:
-        confidence_level = 'moderate'
-    else:
-        confidence_level = 'low'
+    final_label = label_map.get(prediction, 'low-risk')
     
     # Generate insights
-    key_insights = generate_insights(responses, features, risks)
+    key_insights = []
     
-    # Determine final label
-    if max_risk_score < 0.3:
-        final_label = 'low-risk'
-    else:
-        final_label = max_risk_label
+    if rev_rate > 0.2:
+        key_insights.append(f"Frequent letter reversals observed ({int(rev_rate*100)}% of responses)")
+    
+    if avg_time_ms > 5000:
+        key_insights.append("Response time significantly slower than average")
+    elif avg_time_ms < 1000 and impulse_rate > 0.3:
+        key_insights.append("High impulsivity detected - fast but inaccurate responses")
+    
+    if reading_acc < 0.5:
+        key_insights.append(f"Reading accuracy below expected level ({reading_acc*100:.0f}%)")
+    
+    if math_acc < 0.5:
+        key_insights.append(f"Math accuracy below expected level ({math_acc*100:.0f}%)")
+    
+    if focus_acc < 0.5:
+        key_insights.append(f"Attention/focus accuracy below expected level ({focus_acc*100:.0f}%)")
+    
+    if not key_insights:
+        if final_label == 'low-risk':
+            key_insights.append("Performance within normal range across all domains")
+        else:
+            key_insights.append("Some areas may benefit from additional assessment")
+    
+    # Create risk scores (approximate from the prediction)
+    scores = {
+        'dyslexia': 0.7 if 'dyslexia' in final_label.lower() else 0.2,
+        'dyscalculia': 0.7 if 'dyscalculia' in final_label.lower() else 0.2,
+        'attention': 0.7 if 'attention' in final_label.lower() else 0.2
+    }
     
     return {
         'risk': final_label,
         'confidence_level': confidence_level,
-        'key_insights': key_insights,
-        'scores': {
-            'dyslexia': dyslexia_risk,
-            'dyscalculia': dyscalculia_risk,
-            'attention': attention_risk
-        }
+        'key_insights': key_insights[:5],
+        'scores': scores
     }
+
 
 
 def generate_insights(

@@ -63,3 +63,30 @@ class EndSessionResponseSerializer(serializers.Serializer):
     risk = serializers.CharField()
     confidence_level = serializers.CharField()
     key_insights = serializers.ListField(child=serializers.CharField())
+
+
+class GetDashboardDataRequestSerializer(serializers.Serializer):
+    """Request serializer for getting dashboard data."""
+    user_id = serializers.IntegerField()
+    session_id = serializers.CharField()
+
+
+class DomainPerformanceSerializer(serializers.Serializer):
+    """Serializer for domain-specific performance metrics."""
+    accuracy = serializers.FloatField()
+    avg_time = serializers.FloatField()
+    common_mistake = serializers.CharField()
+    recommendation = serializers.CharField()
+
+
+class DashboardDataResponseSerializer(serializers.Serializer):
+    """Response serializer for dashboard data."""
+    student_id = serializers.CharField()
+    age_group = serializers.CharField()
+    final_risk = serializers.CharField()
+    confidence = serializers.CharField()
+    risk_level = serializers.FloatField()
+    assessment_date = serializers.CharField()
+    summary = serializers.CharField()
+    key_insights = serializers.ListField(child=serializers.CharField())
+    patterns = serializers.DictField(child=DomainPerformanceSerializer())

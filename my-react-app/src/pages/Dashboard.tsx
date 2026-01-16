@@ -1,14 +1,8 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
-import type { AssessmentResult } from "../types/types";
+import type { AssessmentResult, DashboardDataResponse } from "../types/types";
+import { getDashboardData } from "../services/api";
 import "../styles/dashboard.css";
-
-type DomainPattern = {
-    accuracy: number;
-    avgTime: number;
-    commonMistake: string;
-    recommendation: string;
-};
 
 interface LocationState {
     results?: AssessmentResult;
@@ -21,47 +15,71 @@ const Dashboard: React.FC = () => {
     const location = useLocation();
     const state = location.state as LocationState | null;
 
-    // Check if we have real results from the assessment
-    const hasResults = state?.results;
+    const [dashboardData, setDashboardData] = useState<DashboardDataResponse | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    // Generate dashboard data from results or use demo data
+    // Check if we have session info to fetch real data
+    const hasSessionInfo = state?.userId && state?.sessionId;
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            if (!hasSessionInfo) return;
+
+            setIsLoading(true);
+            setError(null);
+
+            try {
+                const data = await getDashboardData(state.userId!, state.sessionId!);
+                setDashboardData(data);
+            } catch (err) {
+                console.error('Failed to fetch dashboard data:', err);
+                setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+    }, [hasSessionInfo, state?.userId, state?.sessionId]);
+
+    // Generate dashboard data from fetched data or use demo data
     const generateDashboardData = () => {
-        if (hasResults && state.results) {
-            const result = state.results;
-
-            // Map risk type to display name
-            const riskLabels: Record<string, string> = {
-                'low-risk': 'Low Risk - No Significant Concerns',
-                'dyslexia-risk': 'Possible Dyslexia-related Risk',
-                'dyscalculia-risk': 'Possible Dyscalculia-related Risk',
-                'attention-risk': 'Possible Attention-related Risk'
-            };
-
-            // Calculate risk percentage from confidence level
-            const riskLevels: Record<string, number> = {
-                'low': 30,
-                'moderate': 60,
-                'high': 85
-            };
-
+        if (dashboardData) {
+            // Use real data from backend
             return {
-                studentId: state.userId ? `STU-${state.userId}` : "STU-NEW",
-                ageGroup: state.ageGroup || "9–11",
-                finalRisk: riskLabels[result.risk] || result.risk,
-                confidence: result.confidence_level.charAt(0).toUpperCase() + result.confidence_level.slice(1),
-                riskLevel: riskLevels[result.confidence_level] || 50,
-                assessmentDate: new Date().toLocaleDateString('en-US', {
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric'
-                }),
-                summary: result.key_insights.join(' ') || "Assessment completed. Review the domain analysis below for detailed insights.",
-                keyInsights: result.key_insights,
-                patterns: generatePatterns(result.risk)
+                studentId: dashboardData.student_id,
+                ageGroup: dashboardData.age_group,
+                finalRisk: dashboardData.final_risk,
+                confidence: dashboardData.confidence,
+                riskLevel: dashboardData.risk_level,
+                assessmentDate: dashboardData.assessment_date,
+                summary: dashboardData.summary,
+                keyInsights: dashboardData.key_insights,
+                patterns: {
+                    reading: {
+                        accuracy: dashboardData.patterns.reading.accuracy,
+                        avgTime: dashboardData.patterns.reading.avg_time,
+                        commonMistake: dashboardData.patterns.reading.common_mistake,
+                        recommendation: dashboardData.patterns.reading.recommendation,
+                    },
+                    math: {
+                        accuracy: dashboardData.patterns.math.accuracy,
+                        avgTime: dashboardData.patterns.math.avg_time,
+                        commonMistake: dashboardData.patterns.math.common_mistake,
+                        recommendation: dashboardData.patterns.math.recommendation,
+                    },
+                    focus: {
+                        accuracy: dashboardData.patterns.focus.accuracy,
+                        avgTime: dashboardData.patterns.focus.avg_time,
+                        commonMistake: dashboardData.patterns.focus.common_mistake,
+                        recommendation: dashboardData.patterns.focus.recommendation,
+                    },
+                }
             };
         }
 
-        // Demo data when no results available
+        // Demo data when no real data available
         return {
             studentId: "STU-DEMO",
             ageGroup: "9–11",
@@ -94,59 +112,7 @@ const Dashboard: React.FC = () => {
         };
     };
 
-    // Generate domain patterns based on risk type
-    const generatePatterns = (risk: string): Record<string, DomainPattern> => {
-        const basePatterns: Record<string, DomainPattern> = {
-            reading: {
-                accuracy: 85,
-                avgTime: 800,
-                commonMistake: "None",
-                recommendation: "Reading skills are developing well. Continue with current approach.",
-            },
-            math: {
-                accuracy: 85,
-                avgTime: 700,
-                commonMistake: "None",
-                recommendation: "Math skills are age-appropriate. Maintain regular practice.",
-            },
-            focus: {
-                accuracy: 80,
-                avgTime: 850,
-                commonMistake: "None",
-                recommendation: "Attention span is within normal range.",
-            },
-        };
-
-        // Adjust patterns based on risk type
-        switch (risk) {
-            case 'dyslexia-risk':
-                basePatterns.reading = {
-                    accuracy: 65,
-                    avgTime: 1200,
-                    commonMistake: "Letter Reversal (b/d, p/q)",
-                    recommendation: "Use highlighted letters, phonics-based games, and short reading chunks.",
-                };
-                break;
-            case 'dyscalculia-risk':
-                basePatterns.math = {
-                    accuracy: 60,
-                    avgTime: 1100,
-                    commonMistake: "Number Reversal, Calculation Errors",
-                    recommendation: "Use visual aids, manipulatives, and step-by-step problem solving.",
-                };
-                break;
-            case 'attention-risk':
-                basePatterns.focus = {
-                    accuracy: 55,
-                    avgTime: 600,
-                    commonMistake: "Impulsive clicks, Sequence errors",
-                    recommendation: "Short tasks with clear visual cues and structured breaks are helpful.",
-                };
-                break;
-        }
-
-        return basePatterns;
-    };
+    const hasResults = dashboardData !== null;
 
     const studentData = generateDashboardData();
 
@@ -167,7 +133,7 @@ const Dashboard: React.FC = () => {
     };
 
     const getNextSteps = () => {
-        if (!hasResults) {
+        if (!dashboardData) {
             return [
                 { text: 'Take your first assessment to get personalized results' },
                 { text: 'Results will appear here after completion' },
@@ -182,6 +148,32 @@ const Dashboard: React.FC = () => {
         ];
     };
 
+    // Show loading state
+    if (isLoading) {
+        return (
+            <div className="dashboard-container">
+                <div style={{ textAlign: 'center', padding: '4rem' }}>
+                    <h2>Loading dashboard data...</h2>
+                </div>
+            </div>
+        );
+    }
+
+    // Show error state
+    if (error) {
+        return (
+            <div className="dashboard-container">
+                <div style={{ textAlign: 'center', padding: '4rem' }}>
+                    <h2>Error loading dashboard</h2>
+                    <p>{error}</p>
+                    <Link to="/" className="btn btn-primary" style={{ marginTop: '1rem' }}>
+                        Return to Assessment
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="dashboard-container">
             {/* Header Section */}
@@ -189,7 +181,7 @@ const Dashboard: React.FC = () => {
                 <div className="header-content">
                     <h1 className="dashboard-title">Learning Assessment Dashboard</h1>
                     <p className="dashboard-subtitle">
-                        {hasResults ? 'Your screening results & personalized recommendations' : 'Demo view - Complete an assessment for real results'}
+                        {dashboardData ? 'Your screening results & personalized recommendations' : 'Demo view - Complete an assessment for real results'}
                     </p>
                 </div>
                 <div className="header-actions">
@@ -203,7 +195,7 @@ const Dashboard: React.FC = () => {
             </header>
 
             {/* No Results Banner */}
-            {!hasResults && (
+            {!dashboardData && (
                 <div className="demo-banner">
                     <span>👋</span>
                     <p>
@@ -288,7 +280,7 @@ const Dashboard: React.FC = () => {
                         <h4>💡 Assessment Insight</h4>
                         <p>{studentData.summary}</p>
 
-                        {studentData.keyInsights && studentData.keyInsights.length > 0 && (
+                        {dashboardData && studentData.keyInsights && studentData.keyInsights.length > 0 && (
                             <ul className="insights-list">
                                 {studentData.keyInsights.map((insight, index) => (
                                     <li key={index}>{insight}</li>
