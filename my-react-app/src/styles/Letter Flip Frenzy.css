@@ -1,0 +1,387 @@
+/* ========================================
+   GAME 1 - READING GAME STYLES
+   ======================================== */
+
+/* Container Styles */
+.reading-game-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding: 3rem 2.5rem;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(34, 197, 94, 0.05) 100%);
+    border-radius: 24px;
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.07);
+    animation: fadeInScale 0.5s ease-out;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+/* Question Header */
+.reading-question {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: center;
+    line-height: 1.4;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 16px;
+    border: 2px solid rgba(59, 130, 246, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.reading-question::before {
+    content: '📖';
+    position: absolute;
+    top: 10px;
+    left: 15px;
+    font-size: 1.5rem;
+    opacity: 0.3;
+}
+
+/* Options Grid */
+.reading-options-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+}
+
+/* Option Button */
+.reading-option-button {
+    padding: 1.5rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(59, 130, 246, 0.15);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+/* Ripple Effect */
+.reading-option-button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(59, 130, 246, 0.1);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.reading-option-button:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+/* Hover State */
+.reading-option-button:hover {
+    background: rgba(255, 255, 255, 1);
+    border-color: #3b82f6;
+    transform: translateY(-4px);
+    box-shadow:
+        0 8px 20px rgba(59, 130, 246, 0.2),
+        0 0 30px rgba(59, 130, 246, 0.1);
+}
+
+/* Active/Pressed State */
+.reading-option-button:active {
+    transform: translateY(-2px) scale(0.98);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+/* Selected State (Optional) */
+.reading-option-button.selected {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border-color: #2563eb;
+    box-shadow:
+        0 8px 24px rgba(59, 130, 246, 0.4),
+        0 0 40px rgba(59, 130, 246, 0.2);
+}
+
+/* Correct Answer Feedback */
+.reading-option-button.correct {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border-color: #059669;
+    animation: correctPulse 0.6s ease-out;
+    box-shadow:
+        0 8px 24px rgba(16, 185, 129, 0.4),
+        0 0 40px rgba(16, 185, 129, 0.2);
+}
+
+/* Wrong Answer Feedback */
+.reading-option-button.incorrect {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border-color: #dc2626;
+    animation: incorrectShake 0.5s ease-out;
+    box-shadow:
+        0 8px 24px rgba(239, 68, 68, 0.4),
+        0 0 40px rgba(239, 68, 68, 0.2);
+}
+
+/* Disabled State */
+.reading-option-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Progress Indicator (Optional) */
+.reading-progress {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 12px;
+    margin-top: 1rem;
+}
+
+.reading-progress-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.reading-progress-value {
+    font-size: 1.25rem;
+    font-weight: 800;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Timer Display */
+.reading-timer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 10px;
+    font-weight: 700;
+    color: #2563eb;
+}
+
+.reading-timer-icon {
+    font-size: 1.125rem;
+}
+
+.reading-timer-value {
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Score Card */
+.reading-score-card {
+    display: flex;
+    justify-content: space-around;
+    gap: 1.5rem;
+    width: 100%;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    margin-top: 1rem;
+}
+
+.reading-score-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.reading-score-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.reading-score-value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.reading-score-value.correct {
+    color: #10b981;
+}
+
+.reading-score-value.incorrect {
+    color: #ef4444;
+}
+
+/* Letter Display Enhancement */
+.reading-option-letter {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+/* Animations */
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes correctPulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes incorrectShake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-10px);
+    }
+
+    50% {
+        transform: translateX(10px);
+    }
+
+    75% {
+        transform: translateX(-5px);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .reading-game-container {
+        padding: 2rem 1.5rem;
+        gap: 1.5rem;
+    }
+
+    .reading-question {
+        font-size: 1.25rem;
+        padding: 1.25rem;
+    }
+
+    .reading-options-grid {
+        gap: 1rem;
+    }
+
+    .reading-option-button {
+        padding: 1.25rem;
+        font-size: 1rem;
+        min-height: 70px;
+    }
+
+    .reading-score-card {
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .reading-score-value {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .reading-options-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .reading-game-container {
+        padding: 1.5rem 1rem;
+    }
+
+    .reading-question {
+        font-size: 1.125rem;
+        padding: 1rem;
+    }
+
+    .reading-option-button {
+        padding: 1rem;
+        font-size: 0.95rem;
+        min-height: 60px;
+    }
+}
+
+/* Accessibility - Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+
+    .reading-game-container,
+    .reading-option-button,
+    .reading-option-button.correct,
+    .reading-option-button.incorrect {
+        animation: none;
+    }
+
+    .reading-option-button:hover {
+        transform: none;
+    }
+
+    .reading-option-button::before {
+        transition: none;
+    }
+}
+
+/* Focus States for Keyboard Navigation */
+.reading-option-button:focus-visible {
+    outline: 3px solid #3b82f6;
+    outline-offset: 3px;
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    .reading-option-button {
+        border-width: 3px;
+    }
+
+    .reading-question {
+        border-width: 3px;
+    }
+}

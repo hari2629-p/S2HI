@@ -1,0 +1,339 @@
+/* ========================================
+   ADHD GAME 1 - FOCUS GUARD STYLES
+   ======================================== */
+
+/* Container Styles */
+.focus-guard-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 3rem 2rem;
+  min-height: 400px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.07);
+  animation: fadeInSlide 0.5s ease-out;
+}
+
+/* Heading Styles */
+.focus-guard-heading {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+}
+
+.focus-guard-instruction {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+/* Target Button - Base Styles */
+.focus-target-button {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  outline: none;
+  animation: targetAppear 0.4s ease-out;
+}
+
+/* Green Target (Click this) */
+.focus-target-button.green {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 
+    0 8px 24px rgba(16, 185, 129, 0.3),
+    0 0 40px rgba(16, 185, 129, 0.2);
+}
+
+.focus-target-button.green:hover {
+  transform: scale(1.08);
+  box-shadow: 
+    0 12px 32px rgba(16, 185, 129, 0.4),
+    0 0 50px rgba(16, 185, 129, 0.3);
+}
+
+.focus-target-button.green:active {
+  transform: scale(0.95);
+  box-shadow: 
+    0 4px 16px rgba(16, 185, 129, 0.3),
+    0 0 30px rgba(16, 185, 129, 0.2);
+}
+
+/* Red Target (Ignore this) */
+.focus-target-button.red {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 
+    0 8px 24px rgba(239, 68, 68, 0.3),
+    0 0 40px rgba(239, 68, 68, 0.2);
+  cursor: not-allowed;
+}
+
+.focus-target-button.red:hover {
+  transform: scale(1.03);
+  box-shadow: 
+    0 10px 28px rgba(239, 68, 68, 0.35),
+    0 0 45px rgba(239, 68, 68, 0.25);
+}
+
+/* Pulse Animation for Green Target */
+.focus-target-button.green::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  right: -5px;
+  bottom: -5px;
+  border-radius: 50%;
+  border: 3px solid rgba(16, 185, 129, 0.5);
+  animation: targetPulse 1.5s ease-out infinite;
+}
+
+/* Warning Ring for Red Target */
+.focus-target-button.red::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  right: -5px;
+  bottom: -5px;
+  border-radius: 50%;
+  border: 3px dashed rgba(239, 68, 68, 0.4);
+  animation: warningRotate 3s linear infinite;
+}
+
+/* Clicked State */
+.focus-target-button.clicked {
+  transform: scale(0.9);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Status Indicator */
+.focus-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: slideIn 0.3s ease-out;
+}
+
+.focus-status.waiting {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+  border: 2px solid rgba(59, 130, 246, 0.2);
+}
+
+.focus-status.success {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  border: 2px solid rgba(16, 185, 129, 0.2);
+}
+
+.focus-status.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border: 2px solid rgba(239, 68, 68, 0.2);
+}
+
+/* Timer Display */
+.focus-timer {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-variant-numeric: tabular-nums;
+  min-width: 120px;
+  text-align: center;
+}
+
+/* Score Display */
+.focus-score-card {
+  display: flex;
+  justify-content: space-around;
+  gap: 2rem;
+  width: 100%;
+  max-width: 500px;
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.focus-score-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.focus-score-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.focus-score-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.focus-score-value.correct {
+  color: #10b981;
+}
+
+.focus-score-value.incorrect {
+  color: #ef4444;
+}
+
+/* Animations */
+@keyframes fadeInSlide {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes targetAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes targetPulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+@keyframes warningRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .focus-guard-container {
+    padding: 2rem 1rem;
+    gap: 1.5rem;
+  }
+
+  .focus-guard-heading {
+    font-size: 1.25rem;
+  }
+
+  .focus-target-button {
+    width: 120px;
+    height: 120px;
+  }
+
+  .focus-score-card {
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .focus-score-value {
+    font-size: 1.5rem;
+  }
+
+  .focus-timer {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .focus-guard-container {
+    padding: 1.5rem 0.75rem;
+  }
+
+  .focus-target-button {
+    width: 100px;
+    height: 100px;
+  }
+
+  .focus-score-card {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .focus-guard-heading {
+    font-size: 1.125rem;
+  }
+}
+
+/* Accessibility - Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .focus-guard-container,
+  .focus-target-button,
+  .focus-status {
+    animation: none;
+  }
+
+  .focus-target-button::before {
+    animation: none;
+  }
+
+  .focus-target-button:hover {
+    transform: none;
+  }
+}

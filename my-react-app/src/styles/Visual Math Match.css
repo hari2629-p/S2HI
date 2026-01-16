@@ -1,0 +1,396 @@
+/* ========================================
+   MATH GAME 2 - VISUAL MATH MATCH STYLES
+   ======================================== */
+
+/* Container Styles */
+.visual-math-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2.5rem;
+    padding: 3rem 2.5rem;
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+    border-radius: 24px;
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.07);
+    animation: fadeInScale 0.5s ease-out;
+    max-width: 650px;
+    margin: 0 auto;
+}
+
+/* Heading */
+.visual-math-heading {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: center;
+    background: linear-gradient(135deg, #f472b6 0%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.02em;
+    position: relative;
+    padding-bottom: 0.5rem;
+}
+
+.visual-math-heading::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, #f472b6 0%, #8b5cf6 100%);
+    border-radius: 2px;
+}
+
+/* Equation Display */
+.visual-math-equation {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    padding: 1.5rem 3rem;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 18px;
+    border: 3px solid rgba(244, 114, 182, 0.2);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.1em;
+    position: relative;
+}
+
+.visual-math-equation::before {
+    content: '🧮';
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    font-size: 2rem;
+    opacity: 0.5;
+}
+
+/* Visual Options Container */
+.visual-math-options {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-end;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* Visual Option Button (Block Display) */
+.visual-math-option {
+    padding: 1.5rem 2rem;
+    background: rgba(255, 255, 255, 0.9);
+    border: 3px solid rgba(139, 92, 246, 0.2);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    max-width: 200px;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Individual Block/Dot */
+.visual-math-block {
+    font-size: 2rem;
+    line-height: 1;
+    color: #8b5cf6;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+}
+
+/* Ripple Effect */
+.visual-math-option::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(244, 114, 182, 0.15);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.visual-math-option:hover::before {
+    width: 400px;
+    height: 400px;
+}
+
+/* Hover State */
+.visual-math-option:hover {
+    background: rgba(255, 255, 255, 1);
+    border-color: #f472b6;
+    transform: translateY(-6px) scale(1.03);
+    box-shadow:
+        0 12px 28px rgba(244, 114, 182, 0.25),
+        0 0 40px rgba(244, 114, 182, 0.15);
+}
+
+.visual-math-option:hover .visual-math-block {
+    transform: scale(1.1);
+}
+
+/* Active State */
+.visual-math-option:active {
+    transform: translateY(-3px) scale(1);
+    box-shadow: 0 6px 16px rgba(244, 114, 182, 0.2);
+}
+
+/* Correct Answer */
+.visual-math-option.correct {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-color: #059669;
+    animation: correctExpand 0.6s ease-out;
+    box-shadow:
+        0 12px 32px rgba(16, 185, 129, 0.5),
+        0 0 50px rgba(16, 185, 129, 0.3);
+}
+
+.visual-math-option.correct .visual-math-block {
+    color: white;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Incorrect Answer */
+.visual-math-option.incorrect {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border-color: #dc2626;
+    animation: incorrectShake 0.5s ease-out;
+    box-shadow:
+        0 12px 32px rgba(239, 68, 68, 0.5),
+        0 0 50px rgba(239, 68, 68, 0.3);
+}
+
+.visual-math-option.incorrect .visual-math-block {
+    color: white;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Instruction Text (Optional) */
+.visual-math-instruction {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    text-align: center;
+    font-weight: 500;
+    padding: 0 1rem;
+}
+
+/* Score Display */
+.visual-math-score-card {
+    display: flex;
+    justify-content: space-around;
+    gap: 2rem;
+    width: 100%;
+    max-width: 500px;
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.visual-math-score-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.visual-math-score-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.visual-math-score-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.visual-math-score-value.correct {
+    color: #f472b6;
+}
+
+.visual-math-score-value.incorrect {
+    color: #ef4444;
+}
+
+/* Animations */
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes correctExpand {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes incorrectShake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-12px);
+    }
+
+    50% {
+        transform: translateX(12px);
+    }
+
+    75% {
+        transform: translateX(-6px);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .visual-math-container {
+        padding: 2rem 1.5rem;
+        gap: 2rem;
+    }
+
+    .visual-math-heading {
+        font-size: 1.25rem;
+    }
+
+    .visual-math-equation {
+        font-size: 2.5rem;
+        padding: 1.25rem 2.5rem;
+    }
+
+    .visual-math-options {
+        gap: 1.5rem;
+    }
+
+    .visual-math-option {
+        padding: 1.25rem 1.5rem;
+        max-width: 160px;
+    }
+
+    .visual-math-block {
+        font-size: 1.75rem;
+    }
+
+    .visual-math-score-card {
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .visual-math-score-value {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .visual-math-container {
+        padding: 1.5rem 1rem;
+    }
+
+    .visual-math-equation {
+        font-size: 2rem;
+        padding: 1rem 2rem;
+    }
+
+    .visual-math-options {
+        gap: 1rem;
+    }
+
+    .visual-math-option {
+        padding: 1rem;
+        max-width: 140px;
+    }
+
+    .visual-math-block {
+        font-size: 1.5rem;
+    }
+
+    .visual-math-score-card {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .visual-math-heading {
+        font-size: 1.125rem;
+    }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+
+    .visual-math-container,
+    .visual-math-option,
+    .visual-math-option.correct,
+    .visual-math-option.incorrect,
+    .visual-math-block {
+        animation: none;
+        transition: none;
+    }
+
+    .visual-math-option:hover {
+        transform: none;
+    }
+
+    .visual-math-option:hover .visual-math-block {
+        transform: none;
+    }
+
+    .visual-math-option::before {
+        transition: none;
+    }
+}
+
+.visual-math-option:focus-visible {
+    outline: 3px solid #f472b6;
+    outline-offset: 4px;
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    .visual-math-option {
+        border-width: 4px;
+    }
+
+    .visual-math-equation {
+        border-width: 4px;
+    }
+
+    .visual-math-heading::after {
+        height: 4px;
+    }
+}
