@@ -147,6 +147,81 @@ class PlaceholderPredictionModel:
         return np.array([[dyslexia_risk, dyscalculia_risk, attention_risk]])
 
 
+def extract_question_features(
+    session_id: str,
+    last_question_id: str = None,
+    correct: bool = None,
+    response_time_ms: int = None
+) -> np.ndarray:
+    """
+    Extract features for question generation model.
+    
+    Args:
+        session_id: Current session ID
+        last_question_id: ID of last question answered
+        correct: Whether last answer was correct
+        response_time_ms: Response time in milliseconds
+    
+    Returns:
+        numpy array of shape (1, 10) with features for question model
+    """
+    from .models import UserResponse, Question
+    
+    # Get all responses for this session
+    responses = UserResponse.objects.filter(session_id=session_id).order_by('answered_at')
+    
+    # Default values for first question
+    if not last_question_id or correct is None or response_time_ms is None:
+        return np.array([[
+            1,      # last_correct (assume correct for first question)
+            1000,   # last_response_time
+            1, 0, 0,  # last_difficulty (easy)
+            1.0,    # session_accuracy (100% for first)
+            0, 0, 0, 0  # domain counts (all zero)
+        ]])
+    
+    # Get last question difficulty
+    try:
+        last_question = Question.objects.get(question_id=last_question_id)
+        last_difficulty = last_question.difficulty
+    except Question.DoesNotExist:
+        last_difficulty = 'medium'
+    
+    # One-hot encode difficulty
+    diff_easy = 1 if last_difficulty == 'easy' else 0
+    diff_medium = 1 if last_difficulty == 'medium' else 0
+    diff_hard = 1 if last_difficulty == 'hard' else 0
+    
+    # Calculate session accuracy
+    if responses.exists():
+        total = responses.count()
+        correct_count = responses.filter(correct=True).count()
+        session_accuracy = correct_count / total if total > 0 else 0.5
+    else:
+        session_accuracy = 1.0 if correct else 0.0
+    
+    # Count questions per domain
+    reading_count = responses.filter(domain='reading').count()
+    writing_count = responses.filter(domain='writing').count()
+    math_count = responses.filter(domain='math').count()
+    attention_count = responses.filter(domain='attention').count()
+    
+    features = np.array([[
+        1 if correct else 0,  # last_correct
+        response_time_ms,     # last_response_time
+        diff_easy,            # last_difficulty_easy
+        diff_medium,          # last_difficulty_medium
+        diff_hard,            # last_difficulty_hard
+        session_accuracy,     # session_accuracy
+        reading_count,        # domain_reading_count
+        writing_count,        # domain_writing_count
+        math_count,           # domain_math_count
+        attention_count       # domain_attention_count
+    ]])
+    
+    return features
+
+
 def extract_features(responses: List[Dict[str, Any]]) -> np.ndarray:
     """
     Extract ML features from user responses.
@@ -222,6 +297,48 @@ def extract_features(responses: List[Dict[str, Any]]) -> np.ndarray:
     return features
 
 
+def get_next_question_ml(
+    session_id: str,
+    last_question_id: str = None,
+    correct: bool = None,
+    response_time_ms: int = None
+) -> tuple:
+    """
+    Get next question domain and difficulty using ML model.
+    
+    Args:
+        session_id: Current session ID
+        last_question_id: ID of last question answered
+        correct: Whether last answer was correct
+        response_time_ms: Response time in milliseconds
+    
+    Returns:
+        Tuple of (domain, difficulty) as strings
+    """
+    model = load_question_model()
+    features = extract_question_features(session_id, last_question_id, correct, response_time_ms)
+    
+    # Get prediction
+    prediction = model.predict(features)
+    
+    # Handle different output shapes
+    if len(prediction.shape) == 2:
+        domain_idx = int(prediction[0][0])
+        difficulty_idx = int(prediction[0][1])
+    else:
+        domain_idx = int(prediction[0])
+        difficulty_idx = int(prediction[1])
+    
+    # Map indices to strings
+    domains = ['reading', 'writing', 'math', 'attention']
+    difficulties = ['easy', 'medium', 'hard']
+    
+    domain = domains[domain_idx] if 0 <= domain_idx < 4 else 'reading'
+    difficulty = difficulties[difficulty_idx] if 0 <= difficulty_idx < 3 else 'medium'
+    
+    return (domain, difficulty)
+
+
 def get_prediction(responses: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Get risk prediction from ML model.
@@ -232,7 +349,7 @@ def get_prediction(responses: List[Dict[str, Any]]) -> Dict[str, Any]:
     Returns:
         Dictionary with risk, confidence_level, and key_insights
     """
-    model = load_model()
+    model = load_prediction_model()
     features = extract_features(responses)
     
     # Get prediction
