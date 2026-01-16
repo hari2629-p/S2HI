@@ -12,7 +12,7 @@ cursor = db.cursor()
 
 # ---------------- TABLE CREATION ----------------
 
-# users
+# Users
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
 )
 """)
 
-# sessions
+# Sessions
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS sessions (
     session_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -32,19 +32,20 @@ CREATE TABLE IF NOT EXISTS sessions (
 )
 """)
 
-# questions
+# Questions (AGE-SPECIFIC)
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS questions (
     question_id INT AUTO_INCREMENT PRIMARY KEY,
     domain VARCHAR(10),
     difficulty VARCHAR(10),
+    age_group VARCHAR(10),
     question_text TEXT,
-    correct_option VARCHAR(5),
+    correct_option VARCHAR(255),
     options JSON
 )
 """)
 
-# user_responses
+# Responses
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS user_responses (
     response_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -63,7 +64,7 @@ CREATE TABLE IF NOT EXISTS user_responses (
 )
 """)
 
-# mistake_patterns
+# Mistake Patterns
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS mistake_patterns (
     mistake_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -74,7 +75,7 @@ CREATE TABLE IF NOT EXISTS mistake_patterns (
 )
 """)
 
-# final_predictions
+# Final Predictions
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS final_predictions (
     prediction_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -120,33 +121,21 @@ def end_session(session_id):
     db.commit()
 
 
-def get_question(domain, difficulty):
+def get_question(domain, difficulty, age_group):
     cursor.execute("""
         SELECT question_id, question_text, options
         FROM questions
-        WHERE domain=%s AND difficulty=%s
+        WHERE domain=%s AND difficulty=%s AND age_group=%s
         ORDER BY RAND()
         LIMIT 1
-    """, (domain, difficulty))
+    """, (domain, difficulty, age_group))
     return cursor.fetchone()
-
-    
-def store_mistake(response_id, mistake_type, severity):
-    cursor.execute(
-        """
-        INSERT INTO mistake_patterns
-        (response_id, mistake_type, severity)
-        VALUES (%s,%s,%s)
-        """,
-        (response_id, mistake_type, severity)
-    )
-    db.commit()
-
 
 
 def store_response(session_id, user_id, question_id,
                    domain, difficulty, correct,
                    response_time_ms, confidence):
+
     cursor.execute("""
         INSERT INTO user_responses
         (session_id, user_id, question_id,
@@ -182,33 +171,3 @@ def store_prediction(session_id, user_id,
           dyslexia, dyscalculia,
           attention, label))
     db.commit()
-
-# ---------------- TEST RUN ----------------
-if __name__ == "__main__":
-    user_id = create_user("9-11")
-    session_id = start_session(user_id)
-
-    q = get_question("reading", "medium")
-    if q:
-        qid, qtext, options = q
-        response_id = store_response(
-            session_id, user_id, qid,
-            "reading", "medium",
-            False, 1200, "low"
-        )
-
-        store_mistake(
-            response_id,
-            "letter_reversal",
-            "high"
-        )
-
-    store_prediction(
-        session_id, user_id,
-        0.72, 0.18, 0.22,
-        "dyslexia-risk"
-    )
-
-    end_session(session_id)
-
-    print("✅ Final DB flow completed successfully")

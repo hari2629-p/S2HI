@@ -8,21 +8,27 @@ from userdb import (
 
 def next_difficulty(current, correct, response_time):
     if correct and response_time < 900:
-        return "hard" if current == "medium" else "medium"
+        return {"easy": "medium", "medium": "hard"}.get(current, current)
 
     if not correct or response_time > 1400:
-        return "easy" if current == "medium" else "medium"
+        return {"hard": "medium", "medium": "easy"}.get(current, current)
 
     return current
 
 
-# ---------------- SESSION LOOP LOGIC ----------------
+# ---------------- CORE LOGIC ----------------
+
+def fetch_question(domain, difficulty, age_group):
+    return get_question(domain, difficulty, age_group)
+
 
 def handle_response(session_id, user_id,
                     question_id, domain,
-                    difficulty, correct,
-                    response_time, confidence,
-                    mistake_type=None, severity=None):
+                    difficulty, age_group,
+                    correct, response_time,
+                    confidence,
+                    mistake_type=None,
+                    severity=None):
 
     response_id = store_response(
         session_id, user_id, question_id,
